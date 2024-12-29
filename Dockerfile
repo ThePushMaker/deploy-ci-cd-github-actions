@@ -1,40 +1,76 @@
-# cargamos imagen de php nodo alpine super reducida
+# Usamos una imagen base oficial de PHP 8.2 con FPM y Alpine
+FROM php:8.2-fpm-alpine
 
-# construimos una imagen partiendo del asistente de octane. Usamos una imagen base optimizada para Laravel, 
-# que incluye PHP y todos los paquetes requeridos.
-# Podemos usar siempre esta para construir nuestros proyectos de laravel
-FROM elrincondelisma/octane:latest 
+# Actualizamos el gestor de paquetes e instalamos dependencias necesarias
+RUN apk add --update --no-cache \
+    curl \
+    bash \
+    libpng-dev \
+    libjpeg-turbo-dev \
+    libwebp-dev \
+    libxpm-dev \
+    freetype-dev \
+    zip \
+    libzip-dev \
+    oniguruma-dev \
+    autoconf \
+    gcc \
+    g++ \
+    make \
+    icu-dev \
+    libxml2-dev \
+    curl-dev && \
+    docker-php-ext-configure gd \
+        --with-freetype \
+        --with-jpeg \
+        --with-webp \
+        --with-xpm && \
+    docker-php-ext-install -j$(nproc) gd && \
+    docker-php-ext-install -j$(nproc) mbstring xml curl zip bcmath soap intl && \
+    apk del autoconf gcc g++ make
 
-#Instalamos Composer descargando el instalador oficial y configurándolo en /usr/local/bin.
-Run curl -sS https://getcomposer.org/installer | php -- \
+# Instalamos Composer
+RUN curl -sS https://getcomposer.org/installer | php -- \
   --install-dir=/usr/local/bin --filename=composer
 
-# Copiamos Composer y Roadrunner desde sus imágenes oficiales para habilitar su uso en el contenedor.
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+# Copiamos Roadrunner desde su imágen oficiales
 COPY --from=spiralscout/roadrunner:2.4.2 /usr/bin/rr /usr/bin/rr
 
-# Configuramos el directorio de trabajo principal del contenedor como /app.
+# Configuramos el directorio de trabajo
 WORKDIR /app
-# Copiamos todos los archivos del proyecto local al directorio de trabajo en el contenedor.
+
+# Copiamos los archivos del proyecto
 COPY . .
-# Eliminamos la carpeta vendor y el archivo composer.lock para evitar problemas de dependencias 
-# causados por diferencias entre versiones de php en entornos de desarrollo y producción.
+
+# Creamos el archivo de base de datos SQLite y ajustamos permisos
+RUN mkdir -p /app/database && touch /app/database/database.sqlite
+RUN chmod 777 /app/database/database.sqlite
+
+# Eliminamos archivos previos
 RUN rm -rf /app/vendor
 RUN rm -rf /app/composer.lock
-# Instalamos las dependencias necesarias para Laravel y Octane, incluyendo Roadrunner.
+
+# Instalamos dependencias de Composer
 RUN composer install
 RUN composer require laravel/octane spiral/roadrunner
-# Configuramos el entorno copiando el archivo env.example como .env, ya que este archivo puede faltar tras un pull de git.
+
+# Configuramos el entorno
 COPY .env.example .env
-# Creamos el directorio de logs dentro de la carpeta de storage, esencial para Laravel.
+
+# Creamos directorios necesarios
 RUN mkdir -p /app/storage/logs
-# Limpiamos las cachés de la aplicación para evitar configuraciones desactualizadas o conflictos.
+
+# Ejecutar migraciones y luego limpiar cachés
+RUN php artisan migrate --force
 RUN php artisan cache:clear
 RUN php artisan view:clear
 RUN php artisan config:clear
-# Instalamos Octane con el servidor Swoole y configuramos su inicio para escuchar todas las direcciones IP.
-RUN php artisan octane:install --server="swoole"
-RUN php artisan octane:start --server="swoole" --host="0.0.0.0"
 
-# Exponemos el puerto 8000 para permitir conexiones al servidor de octane porque ese está escuchando en el puerto 8000
+# Instalamos Octane con Swoole
+RUN php artisan octane:install --server="swoole"
+
+# Exponemos el puerto
 EXPOSE 8000
+
+# Comando para iniciar Octane
+CMD ["php", "artisan", "octane:start", "--server=swoole", "--host=0.0.0.0"]
