@@ -22,22 +22,12 @@ jobs:
       # Paso 1: Descargamos el contenido completo del repositorio (checkout) para trabajar con el código fuente
       - name: Checkout
         uses: actions/checkout@v2
-
-      # Notificación de fallo
-      - name: Notificar fallo en Checkout
-        if: failure()
-        run: echo "Checkout ha fallado 😢"
         
       # Paso 2: Configuramos QEMU para permitir la construcción de imágenes multiplataforma
       - name: Set up QEMU
         uses: docker/setup-qemu-action@master
         with:
           platforms: all
-          
-      # Notificación de fallo
-      - name: Notificar fallo en Set up QEMU
-        if: failure()
-        run: echo "Set up QEMU ha fallado 😢"
           
       # Paso 3: Iniciamos sesión en Docker Hub usando las credenciales almacenadas como secretos de github
       # Esto es necesario para subir la imagen construida al repositorio en Docker Hub
@@ -47,19 +37,9 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
       
-      # Notificación de fallo
-      - name: Notificar fallo en Login to Docker Hub
-        if: failure()
-        run: echo "Login to Docker Hub ha fallado 😢"
-      
       # Paso 4: Configuramos Docker Buildx, una herramienta que permite construir imágenes multiplataforma
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
-        
-      # Notificación de fallo
-      - name: Notificar fallo en Set up Docker Buildx
-        if: failure()
-        run: echo "Set up Docker Buildx ha fallado 😢"
         
       # Paso 5: Construimos y subimos la imagen al repositorio de Docker Hub
       - name: Build and push
@@ -73,11 +53,6 @@ jobs:
           # - La imagen se etiqueta como 'latest' para indicar que es la última versión
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/laravel:latest
           
-      # Notificación de fallo
-      - name: Notificar fallo en Build and push
-        if: failure()
-        run: echo "Build and push ha fallado 😢"
-
       # Notificación de éxito
       - name: Notificar éxito
         if: success()
