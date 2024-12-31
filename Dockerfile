@@ -26,14 +26,14 @@ RUN apk add --update --no-cache \
         --with-webp \
         --with-xpm && \
     docker-php-ext-install -j$(nproc) gd && \
-    docker-php-ext-install -j$(nproc) mbstring xml curl zip bcmath soap intl && \
+    docker-php-ext-install -j$(nproc) mbstring xml curl zip bcmath soap intl pcntl && \
     apk del autoconf gcc g++ make
 
 # Instalamos Composer
 RUN curl -sS https://getcomposer.org/installer | php -- \
   --install-dir=/usr/local/bin --filename=composer
 
-# Copiamos Roadrunner desde su imágen oficiales
+# Copiamos Roadrunner desde su imagen oficial
 COPY --from=spiralscout/roadrunner:2.4.2 /usr/bin/rr /usr/bin/rr
 
 # Configuramos el directorio de trabajo
