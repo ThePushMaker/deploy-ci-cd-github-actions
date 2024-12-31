@@ -19,7 +19,8 @@ RUN apk add --update --no-cache \
     make \
     icu-dev \
     libxml2-dev \
-    curl-dev && \
+    curl-dev \
+    git && \  # Añadimos git para instalar Swoole desde PECL
     docker-php-ext-configure gd \
         --with-freetype \
         --with-jpeg \
@@ -27,6 +28,8 @@ RUN apk add --update --no-cache \
         --with-xpm && \
     docker-php-ext-install -j$(nproc) gd && \
     docker-php-ext-install -j$(nproc) mbstring xml curl zip bcmath soap intl pcntl && \
+    pecl install swoole && \
+    docker-php-ext-enable swoole && \ # Activamos la extensión Swoole
     apk del autoconf gcc g++ make
 
 # Instalamos Composer
